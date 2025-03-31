@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.0
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -14,7 +14,7 @@ services:
       - kafka-net
 
   kafka-1:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka-1
     ports:
       - "9192:9192"
@@ -34,7 +34,7 @@ services:
       - kafka-net
 
   kafka-2:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka-2
     ports:
       - "9193:9193"
@@ -54,7 +54,7 @@ services:
       - kafka-net  
 
   kafka-3:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka-3
     ports:
       - "9194:9194"
@@ -74,7 +74,7 @@ services:
       - kafka-net
 
   kafka-4:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka-4
     ports:
       - "9195:9195"
@@ -94,7 +94,7 @@ services:
       - kafka-net
 
   kafdrop:
-    image: obsidiandynamics/kafdrop:latest
+    image: obsidiandynamics/kafdrop:4.1.0
     container_name: kafdrop
     environment:
       KAFKA_BROKERCONNECT: "kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092"
@@ -109,7 +109,7 @@ services:
       - kafka-net
 
   control-center:
-    image: confluentinc/cp-enterprise-control-center:latest
+    image: confluentinc/cp-enterprise-control-center:7.4.0
     container_name: control-center
     ports:
       - "9021:9021"
@@ -122,6 +122,100 @@ services:
       - ./data/control-center:/var/lib/control-center
     networks:
       - kafka-net
+
+  kafka-connect:
+    image: debezium/connect:3.0.0.Final
+    container_name: kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092
+      - GROUP_ID=kafka-connect-group
+      - CONFIG_STORAGE_TOPIC=connect-configs
+      - OFFSET_STORAGE_TOPIC=connect-offsets
+      - STATUS_STORAGE_TOPIC=connect-status
+      - KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      # - CONFIG_STORAGE_REPLICATION_FACTOR=3
+      # - OFFSET_STORAGE_REPLICATION_FACTOR=3
+      # - STATUS_STORAGE_REPLICATION_FACTOR=3
+      # - CONFIG_STORAGE_PARTITIONS=1
+      # - OFFSET_STORAGE_PARTITIONS=25
+      # - STATUS_STORAGE_PARTITIONS=1
+      # - TOPIC_CREATION_ENABLE=true
+      # - TOPIC_CREATION_DEFAULT_REPLICATION_FACTOR=3
+      # - TOPIC_CREATION_DEFAULT_PARTITIONS=1
+      # - TOPIC_CREATION_DEFAULT_CLEANUP_POLICY=compact
+      # - REST_ADVERTISED_HOST_NAME=kafka-connect
+      - PLUGIN_PATH=/usr/share/java
+    volumes:
+      - ./data/kafka-connect:/var/lib/kafka-connect
+      - ./data/kafka-connect-plugin:/usr/share/java
+    #   - ./debezium-connector-jdbc-3.0.8.Final-plugin.tar.gz:/tmp/debezium-connector-jdbc-3.0.8.Final-plugin.tar.gz
+    # command: sh -c "tar -xzf /tmp/debezium-connector-jdbc-3.0.8.Final-plugin.tar.gz -C /usr/share/java && sleep infinity"
+    networks:
+      - kafka-net
+    depends_on:
+      - kafka-1
+      - zookeeper
+
+  debezium-ui:
+    image: debezium/debezium-ui:latest
+    container_name: debezium-ui
+    ports:
+      - "8090:8080"
+    environment:
+      - KAFKA_CONNECT_URIS=http://kafka-connect:8083
+    networks:
+      - kafka-net
+    depends_on:
+      - kafka-connect
+
+  postgres-1:
+    image: postgres:17.4
+    container_name: postgres-1
+    restart: always
+    environment:
+      POSTGRES_USER: root1
+      POSTGRES_PASSWORD: root1
+      POSTGRES_DB: kari
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres-1:/var/lib/postgresql/data
+    networks:
+      - kafka-net
+
+  postgres-2:
+    image: postgres:17.4
+    container_name: postgres-2
+    restart: always
+    environment:
+      POSTGRES_USER: root2
+      POSTGRES_PASSWORD: root2
+      POSTGRES_DB: kari
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/postgres-2:/var/lib/postgresql/data
+    networks:
+      - kafka-net
+
+  postgres-3:
+    image: postgres:17.4
+    container_name: postgres-3
+    restart: always
+    environment:
+      POSTGRES_USER: root3
+      POSTGRES_PASSWORD: root3
+      POSTGRES_DB: kari
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./data/postgres-3:/var/lib/postgresql/data
+    networks:
+      - kafka-net
+
 
 networks:
   kafka-net:
