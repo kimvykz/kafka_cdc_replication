@@ -20,3 +20,6 @@ GRANT CONNECT ON DATABASE kari TO replica_user_02;
 GRANT CONNECT ON DATABASE kari TO replica_user_03;
 
 ALTER TABLE satellites REPLICA IDENTITY USING INDEX satellites_pkey;
+
+connector - https://debezium.io/documentation/reference/3.0/connectors/postgresql.html
+sink connector - https://debezium.io/documentation/reference/3.0/connectors/jdbc.html
